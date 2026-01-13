@@ -1,17 +1,43 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
-import { Mail, Linkedin, Send, ArrowUpRight, Sparkles } from "lucide-react";
+import { Mail, Linkedin, Send, ArrowUpRight, Sparkles, Loader2, CheckCircle } from "lucide-react";
+import emailjs from "@emailjs/browser";
 
 const Contact = () => {
   const ref = useRef(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log(formData);
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+
+    try {
+      await emailjs.send(
+        "service_8cozwer",
+        "template_xsjx9z5",
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          message: formData.message,
+          to_name: "Abhisshek",
+        },
+        "Q9fvkqkxnDJwiaaIb"
+      );
+      
+      setSubmitStatus("success");
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      console.error("EmailJS error:", error);
+      setSubmitStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -132,13 +158,34 @@ const Contact = () => {
 
                 <motion.button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-8 py-4 gradient-bg rounded-xl text-primary-foreground font-medium glow-effect"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 px-8 py-4 gradient-bg rounded-xl text-primary-foreground font-medium glow-effect disabled:opacity-70"
+                  whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                  whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
                 >
-                  Send Message
-                  <Send className="w-5 h-5" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Sending...
+                    </>
+                  ) : submitStatus === "success" ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Message Sent!
+                    </>
+                  ) : (
+                    <>
+                      Send Message
+                      <Send className="w-5 h-5" />
+                    </>
+                  )}
                 </motion.button>
+
+                {submitStatus === "error" && (
+                  <p className="text-destructive text-sm text-center">
+                    Failed to send message. Please try again or email directly.
+                  </p>
+                )}
               </form>
             </div>
           </motion.div>
